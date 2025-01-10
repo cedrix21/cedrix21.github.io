@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #3D5300;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            padding: 20px;
+            background: #ABBA7C;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select,
+        button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #taskList {
+            margin-top: 20px;
+        }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #e9ecef;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .task-actions button {
+            margin-left: 10px;
+        }
+
+        h1 {
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>MY TASK </h1>
+
+        <!-- Add Task Form -->
+        <form id="taskForm">
+            <input type="text" id="taskTitle" placeholder="Enter task title" required>
+            <select id="taskStatus" required>
+                <option value="pending">Pending</option>
+                <option value="in progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+            <button style="background-color: rgb(0, 232, 0); border-color: rgb(0, 232, 0);" type="submit">Add
+                Task</button>
+        </form>
+
+        <!-- Task List -->
+        <div id="taskList"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:1234';
+
+        // Fetch tasks on load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchTasks();
+        });
+
+        // Form submit event for creating a task
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('taskTitle').value;
+            const status = document.getElementById('taskStatus').value;
+
+            fetch(`${API_URL}/create-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, status })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('taskForm').reset();
+                    fetchTasks(); // Reload tasks after creation
+                });
+        });
+
+        // Function to fetch and display all tasks
+        function fetchTasks() {
+            fetch(`${API_URL}/view`)
+                .then(response => response.json())
+
+                .then(tasks => {
+                    const taskList = document.getElementById('taskList');
+                    taskList.innerHTML = '';
+                   
+                        tasks.forEach(task => {
+                            const taskItem = document.createElement('div');
+                            taskItem.classList.add('task-item');
+
+                            // Set background color based on task status
+                            if (task.status === 'pending') {
+                                taskItem.style.backgroundColor = '#FFD700'; // Gold for pending
+                            } else if (task.status === 'in progress') {
+                                taskItem.style.backgroundColor = '#87CEEB'; // Sky blue for in progress
+                            } else if (task.status === 'completed') {
+                                taskItem.style.backgroundColor = '#90EE90'; // Light green for completed
+                            }
+
+                            taskItem.innerHTML = `
+                            <input type="text" id="title-${task.task_id}" value="${task.title}" />
+                            <span> - Status: ${task.status}</span>
+                            <div class="task-actions">
+                                <select id="status-${task.task_id}">
+                                    <option value="pending" ${task.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="in progress" ${task.status === 'in progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="completed" ${task.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                </select>
+                                <button style="background-color: rgb(2, 74, 242); border-color: rgb(2, 74, 242);"  onclick="updateTask(${task.task_id})">Update</button>
+                                <button style="background-color: rgb(255, 0, 30); border-color: rgb(255, 0, 30);"  onclick="deleteTask(${task.task_id})">Delete</button>
+                            </div>
+                        `;
+                            taskList.appendChild(taskItem);
+                        });
+                    });
+                }
+
+        // Function to update task title and status by calling the endpoint
+        function updateTask(taskId) {
+                        const newTitle = document.getElementById(`title-${taskId}`).value;
+                        const newStatus = document.getElementById(`status-${taskId}`).value;
+
+                        fetch(`${API_URL}/update/${taskId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title: newTitle, status: newStatus })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                // Log data to debug
+                                console.log(data);
+                                // Refresh the task list to reflect the updated title and status
+                                fetchTasks();
+                            })
+                            .catch(error => console.error('Error updating task:', error));
+                    }
+
+        // Function to delete a task
+        function deleteTask(taskId) {
+                        fetch(`${API_URL}/delete/${taskId}`, {
+                            method: 'DELETE'
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                // Refresh task list after deletion
+                                fetchTasks();
+                            })
+                            .catch(error => console.error('Error deleting task:', error));
+                    }
+
+        // Initial fetch to load tasks
+        fetchTasks();
+    </script>
+</body>
+
+</html>
