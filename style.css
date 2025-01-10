@@ -62,7 +62,7 @@ nav .menu li a:hover {
 
 /* Hero Section */
 header {
-    background: linear-gradient(to right, #6a11cb, #2575fc);
+    background: red;
     color: #fff;
     text-align: center;
     padding: 100px 20px;
